@@ -11,7 +11,7 @@ DeepSeek Harness (DSH) web 客户端插件：炭灰 + 樱粉主题配色，并�
 ## 安装
 
 ```bash
-dsh plugin --profile web add git+https://gitee.com/<你的用户名>/dsh-my-style.git
+dsh plugin --profile web add git+https://gitee.com/llx2333/dsh-my-style.git
 ```
 
 安装后重启 dsh 即自动生效（`dsh.bundle.patch` 会自动把插件注册进 profile）。
