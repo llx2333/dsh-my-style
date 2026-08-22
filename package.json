@@ -1,0 +1,36 @@
+{
+  "name": "dsh-my-style",
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Xu's charcoal and cherry-pink DSH client theme",
+  "exports": {
+    ".": "./host.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-client-ui-theme": "^0.1.0-rc.6"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-theme"
+      ],
+      "immediately": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitee.com/你的用户名/dsh-my-style.git"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "theme",
+    "stats"
+  ]
+}

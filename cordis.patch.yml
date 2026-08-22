@@ -1,0 +1,6 @@
+# Activate the client theme package in the web profile's browser roster.
+# stats-flank (v27, 2026-08-22) now lives inside this bundle's client.js, so a
+# single roster row activates both the theme and the stats flanks.
+- insert:
+    - id: dsh-my-style
+      name: dsh-my-style
