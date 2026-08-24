@@ -702,11 +702,9 @@ html body span.YDXeBa_folderActive svg * {
           var statItems=[], listeners=new Set(), notify=function(){listeners.forEach(function(f){f()})};
     
           function parseStats(el){
-            var ch=Array.from(el.children), raw=[];
-            if(ch.length>=2)ch.forEach(function(c){var t=(c.textContent||'').trim();if(t)raw=raw.concat(t.split(/\s*[·|]\s*/).filter(Boolean))});
-            else{var t=(el.textContent||'').trim();raw=t.split(/\s*[·|]\s*/).filter(Boolean)}
-            statItems=[];var i=0;
-            while(i<raw.length){if(i+1<raw.length&&raw[i].length<=6&&raw[i+1].length<=6){statItems.push(raw[i]+' · '+raw[i+1]);i+=2}else{statItems.push(raw[i]);i+=1}}
+            var ch=Array.from(el.children);
+            statItems=[];
+            ch.forEach(function(c){if(c.getAttribute('aria-hidden')==='true')return;var t=(c.textContent||'').trim();if(t)statItems.push(t)});
             notify();
           }
     
@@ -792,7 +790,7 @@ html body span.YDXeBa_folderActive svg * {
                   // 数据栏宽度随内容收缩 → 行宽由数据决定，横线 = 行宽 + 4px。
                   var LBL_W=76, COL_GAP=12;
                   function rdr(key,label,value,color,showLine,ref){return React.createElement('span',{key:key,style:ro(color,showLine),ref:ref||undefined},React.createElement('span',{style:{display:'inline-block',width:LBL_W+'px'}},label),React.createElement('span',{style:{display:'inline-block',paddingLeft:COL_GAP+'px'}},value))}
-                  function rone(item,i,arr,side){var color=ROW_COLORS[i%ROW_COLORS.length],showLine=i<arr.length-1;var parts=splitLabelValue(item),key=(side==='left'?'l':'r')+i,isFirst=i===0;if(isFirst){var t=!parts.value?item:(parts.label||parts.value);return rfr(key,t,color,showLine,side==='left'?l2w:r2w)}if(!parts.value)return rfr(key,item,color,showLine);if(!parts.label)return rfr(key,parts.value,color,showLine);return rdr(key,parts.label,parts.value,color,showLine,i===1?(side==='left'?l2ref:r2ref):null);}
+                  function rone(item,i,arr,side){var color=ROW_COLORS[i%ROW_COLORS.length],showLine=i<arr.length-1,key=(side==='left'?'l':'r')+i,isFirst=i===0;if(isFirst)return rfr(key,item,color,showLine,side==='left'?l2w:r2w);return rfr(key,item,color,showLine);}
 
                   return React.createElement(React.Fragment,null,
                     React.createElement('div',{style:lc,key:'left'},li.map(function(item,i){return rone(item,i,li,'left')})),
