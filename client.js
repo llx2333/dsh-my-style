@@ -714,7 +714,7 @@ html body span.YDXeBa_folderActive svg * {
           function watch(el){if(elObserver)elObserver.disconnect();currentEl=el;parseStats(el);elObserver=new MutationObserver(function(){parseStats(el)});elObserver.observe(el,{childList:true,characterData:true,subtree:true})}
           var found=document.querySelector('.FJxK0a_root');if(found)watch(found);
     
-          function onShift(){var f=document.querySelector('.FJxK0a_root');if(f&&f!==currentEl)watch(f);if(!f){statItems=[];if(elObserver){elObserver.disconnect();elObserver=null}currentEl=null}notify()}
+          function onShift(){var f=document.querySelector('.FJxK0a_root');if(f&&f!==currentEl)watch(f);if(!f)statItems=[];notify()}
           var bo=new MutationObserver(onShift);bo.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});
           function onResize(){notify()}window.addEventListener('resize',onResize);
     
