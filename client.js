@@ -702,11 +702,9 @@ html body span.YDXeBa_folderActive svg * {
           var statItems=[], listeners=new Set(), notify=function(){listeners.forEach(function(f){f()})};
     
           function parseStats(el){
-            var ch=Array.from(el.children), raw=[];
-            if(ch.length>=2)ch.forEach(function(c){var t=(c.textContent||'').trim();if(t)raw=raw.concat(t.split(/\s*[·|]\s*/).filter(Boolean))});
-            else{var t=(el.textContent||'').trim();raw=t.split(/\s*[·|]\s*/).filter(Boolean)}
-            statItems=[];var i=0;
-            while(i<raw.length){if(i+1<raw.length&&raw[i].length<=6&&raw[i+1].length<=6){statItems.push(raw[i]+' · '+raw[i+1]);i+=2}else{statItems.push(raw[i]);i+=1}}
+            var ch=Array.from(el.children);
+            statItems=[];
+            ch.forEach(function(c){var t=(c.textContent||'').trim();if(t)statItems.push(t)});
             notify();
           }
     
@@ -721,6 +719,7 @@ html body span.YDXeBa_folderActive svg * {
           function ha(hex,a){var h=hex.replace('#','');return'rgba('+parseInt(h.substr(0,2),16)+','+parseInt(h.substr(2,2),16)+','+parseInt(h.substr(4,2),16)+','+a+')'}
     
           function splitLabelValue(text){
+            var dotIdx=text.indexOf('·');if(dotIdx!==-1){var label=text.slice(0,dotIdx).trim(),value=text.slice(dotIdx+1).trim();if(/[步轮]$/.test(value))return{label:text,value:''};return{label:label,value:value}}
             var idx=text.lastIndexOf(' ');if(idx===-1)return{label:text,value:''};
             var label=text.slice(0,idx),value=text.slice(idx+1).trim();
             if(/[步轮]$/.test(value)&&/[·•]/.test(label))return{label:text,value:''};
@@ -778,8 +777,8 @@ html body span.YDXeBa_folderActive svg * {
 
                   if(useFallback)return null;
     
-                  var mid=Math.ceil(items.length/2);
-                  var li=items.slice(0,mid),ri=items.slice(mid);
+                  var LEFT_COUNT=4;
+                  var li=items.slice(0,LEFT_COUNT),ri=items.slice(LEFT_COUNT);
 
                   var cb={position:'fixed',bottom:'8px',zIndex:92,display:'flex',flexDirection:'column',gap:'0',pointerEvents:'none',fontSize:'12px',lineHeight:'18px'};
                   var lc=Object.assign({},cb,{right:(vw-rect.left+GAP)+'px',alignItems:'flex-start'});
