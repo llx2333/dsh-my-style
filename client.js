@@ -724,7 +724,7 @@ html body span.YDXeBa_folderActive svg * {
             var idx=text.lastIndexOf(' ');if(idx===-1)return{label:text,value:''};
             var label=text.slice(0,idx),value=text.slice(idx+1).trim();
             if(/[步轮]$/.test(value)&&/[·•]/.test(label))return{label:text,value:''};
-            if(value==='tok'){var i2=label.lastIndexOf(' ');if(i2!==-1){value=label.slice(i2+1).trim();label=label.slice(0,i2)}}
+            if(value==='tok'){var i2=label.lastIndexOf(' ');if(i2!==-1){value=label.slice(i2+1).trim()+' tok';label=label.slice(0,i2)}}
             if(value==='tok/s'){var np=label.trim();if(/^\d+(\.\d+)?$/.test(np))return{label:'',value:np+' tok/s'}}
             return{label:label,value:value};
           }
