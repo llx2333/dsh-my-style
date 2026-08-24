@@ -242,8 +242,8 @@ html body .nL4_yW_sessionLogButton,
 html body button[class*= sessionLog],
 html body button[class*=SessionLog] {
   position: absolute !important;
-  top: 32px !important;
-  right: 28px !important;
+  top: 34px !important;
+  right: 4px !important;
   height: 30px !important;
   min-height: 30px !important;
   padding: 0 14px !important;
