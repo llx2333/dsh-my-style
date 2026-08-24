@@ -792,7 +792,7 @@ html body span.YDXeBa_folderActive svg * {
                   // 数据栏宽度随内容收缩 → 行宽由数据决定，横线 = 行宽 + 4px。
                   var LBL_W=76, COL_GAP=12;
                   function rdr(key,label,value,color,showLine,ref){return React.createElement('span',{key:key,style:ro(color,showLine),ref:ref||undefined},React.createElement('span',{style:{display:'inline-block',width:LBL_W+'px'}},label),React.createElement('span',{style:{display:'inline-block',paddingLeft:COL_GAP+'px'}},value))}
-                  function rone(item,i,arr,side){var color=ROW_COLORS[i%ROW_COLORS.length],showLine=i<arr.length-1;var parts=splitLabelValue(item),key=(side==='left'?'l':'r')+i,isFirst=i===0;if(isFirst){var t=!parts.value?item:(parts.label||parts.value);return rfr(key,t,color,showLine,side==='left'?l2w:r2w)}if(!parts.value)return rfr(key,item,color,showLine);if(!parts.label)return rfr(key,parts.value,color,showLine);return rdr(key,parts.label,parts.value,color,showLine,i===1?(side==='left'?l2ref:r2ref):null);}
+                  function rone(item,i,arr,side){var color=ROW_COLORS[i%ROW_COLORS.length],showLine=i<arr.length-1;var parts=splitLabelValue(item),key=(side==='left'?'l':'r')+i,isFirst=i===0;if(isFirst)return rfr(key,item,color,showLine,side==='left'?l2w:r2w);if(!parts.value)return rfr(key,item,color,showLine);if(!parts.label)return rfr(key,parts.value,color,showLine);return rdr(key,parts.label,parts.value,color,showLine,i===1?(side==='left'?l2ref:r2ref):null);}
 
                   return React.createElement(React.Fragment,null,
                     React.createElement('div',{style:lc,key:'left'},li.map(function(item,i){return rone(item,i,li,'left')})),
