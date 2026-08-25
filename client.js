@@ -707,7 +707,7 @@ html body span.YDXeBa_folderActive svg * {
             var counts='',llm='',toolCall='',ttft='',tps='',cacheHit='',inputTokens='',outputTokens='';
             groups.forEach(function(g){
               if(g.indexOf('轮')!==-1&&g.indexOf('步')!==-1)counts=g;
-              else if(g.indexOf('LLM')===0)llm=g;
+              else if(g.indexOf('LLM')===0){var p=g.split('·');llm=p[0].trim();if(p[1]&&p[1].trim().indexOf('工具调用')===0)toolCall=p[1].trim()}
               else if(g.indexOf('工具调用')===0)toolCall=g;
               else if(g.indexOf('缓存命中')===0)cacheHit=g;
               else if(g.indexOf('首')!==-1&&g.indexOf('平均')!==-1){var p=g.split('·');ttft=(p[0]||'').trim();tps=(p[1]||'').trim()}
