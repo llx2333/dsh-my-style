@@ -702,11 +702,18 @@ html body span.YDXeBa_folderActive svg * {
           var statItems=[], listeners=new Set(), notify=function(){listeners.forEach(function(f){f()})};
     
           function parseStats(el){
-            var ch=Array.from(el.children), raw=[];
-            if(ch.length>=2)ch.forEach(function(c){var t=(c.textContent||'').trim();if(t)raw=raw.concat(t.split(/\s*[·|]\s*/).filter(Boolean))});
-            else{var t=(el.textContent||'').trim();raw=t.split(/\s*[·|]\s*/).filter(Boolean)}
-            statItems=[];var i=0;
-            while(i<raw.length){if(i+1<raw.length&&raw[i].length<=6&&raw[i+1].length<=6){statItems.push(raw[i]+' · '+raw[i+1]);i+=2}else{statItems.push(raw[i]);i+=1}}
+            var ch=Array.from(el.children),groups=[];
+            ch.forEach(function(c){if(c.getAttribute('aria-hidden')==='true')return;var t=(c.textContent||'').trim();if(t)groups.push(t)});
+            var counts='',llm='',toolCall='',ttft='',tps='',cacheHit='',inputTokens='',outputTokens='';
+            groups.forEach(function(g){
+              if(g.indexOf('轮')!==-1&&g.indexOf('步')!==-1)counts=g;
+              else if(g.indexOf('LLM')===0)llm=g;
+              else if(g.indexOf('工具调用')===0)toolCall=g;
+              else if(g.indexOf('缓存命中')===0)cacheHit=g;
+              else if(g.indexOf('首')!==-1&&g.indexOf('平均')!==-1){var p=g.split('·');ttft=(p[0]||'').trim();tps=(p[1]||'').trim()}
+              else if(g.indexOf('输入')!==-1&&g.indexOf('输出')!==-1){var p=g.split('·');inputTokens=(p[0]||'').trim();outputTokens=(p[1]||'').trim()}
+            });
+            statItems=[counts||'0 轮 · 0 步',llm||'LLM 0s',toolCall||'工具调用 0s',ttft||'首 token 平均 0s',tps||'0 tok/s',cacheHit||'缓存命中 0%',inputTokens||'输入 0 tok',outputTokens||'输出 0 tok'];
             notify();
           }
     
@@ -778,8 +785,8 @@ html body span.YDXeBa_folderActive svg * {
 
                   if(useFallback)return null;
     
-                  var mid=Math.ceil(items.length/2);
-                  var li=items.slice(0,mid),ri=items.slice(mid);
+                  var LEFT_COUNT=4;
+                  var li=items.slice(0,LEFT_COUNT),ri=items.slice(LEFT_COUNT);
 
                   var cb={position:'fixed',bottom:'8px',zIndex:92,display:'flex',flexDirection:'column',gap:'0',pointerEvents:'none',fontSize:'12px',lineHeight:'18px'};
                   var lc=Object.assign({},cb,{right:(vw-rect.left+GAP)+'px',alignItems:'flex-start'});
