@@ -710,10 +710,10 @@ html body span.YDXeBa_folderActive svg * {
               else if(g.indexOf('LLM')===0){var p=g.split('·');llm=p[0].trim();if(p[1]&&p[1].trim().indexOf('工具调用')===0)toolCall=p[1].trim()}
               else if(g.indexOf('工具调用')===0)toolCall=g;
               else if(g.indexOf('缓存命中')===0)cacheHit=g;
-              else if(g.indexOf('首')!==-1&&g.indexOf('平均')!==-1){var p=g.split('·');ttft=(p[0]||'').trim();tps=(p[1]||'').trim()}
-              else if(g.indexOf('输入')!==-1&&g.indexOf('输出')!==-1){var p=g.split('·');inputTokens=(p[0]||'').trim();outputTokens=(p[1]||'').trim()}
+              else if(g.indexOf('首')!==-1&&g.indexOf('平均')!==-1){var p=g.split('·');ttft=(p[0]||'').trim().replace(/\s*token\s*/g,'token');tps=(p[1]||'').trim()}
+              else if(g.indexOf('输入')!==-1&&g.indexOf('输出')!==-1){var p=g.split('·');inputTokens=(p[0]||'').trim().replace(/\s*tok$/,'');outputTokens=(p[1]||'').trim().replace(/\s*tok$/,'')}
             });
-            statItems=[counts||'0 轮 · 0 步',llm||'LLM 0s',toolCall||'工具调用 0s',ttft||'首 token 平均 0s',tps||'0 tok/s',cacheHit||'缓存命中 0%',inputTokens||'输入 0 tok',outputTokens||'输出 0 tok'];
+            statItems=[counts||'0 轮 · 0 步',llm||'LLM 0s',toolCall||'工具调用 0s',ttft||'首token平均 0s',tps||'0 tok/s',cacheHit||'缓存命中 0%',inputTokens||'输入 0',outputTokens||'输出 0'];
             notify();
           }
     
@@ -731,7 +731,7 @@ html body span.YDXeBa_folderActive svg * {
             var idx=text.lastIndexOf(' ');if(idx===-1)return{label:text,value:''};
             var label=text.slice(0,idx),value=text.slice(idx+1).trim();
             if(/[步轮]$/.test(value)&&/[·•]/.test(label))return{label:text,value:''};
-            if(value==='tok'){var i2=label.lastIndexOf(' ');if(i2!==-1){value=label.slice(i2+1).trim()+' tok';label=label.slice(0,i2)}}
+            if(value==='tok'){var i2=label.lastIndexOf(' ');if(i2!==-1){value=label.slice(i2+1).trim();label=label.slice(0,i2)}}
             if(value==='tok/s'){var np=label.trim();if(/^\d+(\.\d+)?$/.test(np))return{label:'',value:np+' tok/s'}}
             return{label:label,value:value};
           }
