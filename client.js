@@ -701,7 +701,11 @@ html body span.YDXeBa_folderActive svg * {
     
           var statItems=[], listeners=new Set(), notify=function(){listeners.forEach(function(f){f()})};
     
+          var _parsing=false;
           function parseStats(el){
+            if(_parsing)return;
+            _parsing=true;
+            try{
             var ch=Array.from(el.children),groups=[];
             ch.forEach(function(c){if(c.getAttribute('aria-hidden')==='true')return;var t=(c.textContent||'').trim();if(t)groups.push(t)});
             var counts='',llm='',toolCall='',ttft='',tps='',cacheHit='',inputTokens='',outputTokens='';
@@ -714,7 +718,15 @@ html body span.YDXeBa_folderActive svg * {
               else if(g.indexOf('输入')!==-1&&g.indexOf('输出')!==-1){var p=g.split('·');inputTokens=(p[0]||'').trim().replace(/\s*tok$/,'');outputTokens=(p[1]||'').trim().replace(/\s*tok$/,'')}
             });
             statItems=[counts||'0 轮 · 0 步',llm||'LLM 0s',toolCall||'工具调用 0s',ttft||'首token平均 0s',tps||'0 tok/s',cacheHit||'缓存命中 0%',inputTokens||'输入 0',outputTokens||'输出 0'];
+            // Strip "tok" from native element for narrow fallback view
+            ch.forEach(function(c){
+              if(c.getAttribute('aria-hidden')==='true')return;
+              var t=c.textContent||'';
+              var nt=t.replace(/(输入\s*\S+)\s*tok\b/,'$1').replace(/(输出\s*\S+)\s*tok\b/,'$1');
+              if(nt!==t)c.textContent=nt;
+            });
             notify();
+            }finally{_parsing=false;}
           }
     
           var elObserver=null, currentEl=null;
