@@ -832,7 +832,10 @@ html body span.YDXeBa_folderActive svg * {
     // - 会话 id：行 fiber.key（向上 ≤8 层第一个非空 string key）＝node.id＝host 会话 id；
     //   兜底从菜单节点走链找 props.node.id；打开的行有 _sessionRow+_menuOpen class；
     // - 注入：克隆官方 menuitem（继承全部样式）→ 改文案/复制图标 → 点击复制 id，
-    //   反馈「已复制」后回调 Menu 的 props.onClose 收起菜单。
+    //   反馈「已复制」后回调 Menu 的 props.onClose 收起菜单；
+    // - 排序：菜单项按固定顺序重排（重命名→复制会话 ID→跳过梦境→分叉→删除→归档）。
+    //   官方项靠 fiber.key 识别（rename/fork/archive），插件项靠标记属性/_danger 类
+    //   识别；仅移动 DOM 节点不改文字，React 重渲染按 key 原地 patch 不会打乱顺序。
     const sessionCopyId = (function(){
       const ITEM_FLAG = "data-mystyle-copy-id-item";
       const SID_ATTR = "data-mystyle-copy-id-sid";
@@ -840,6 +843,8 @@ html body span.YDXeBa_folderActive svg * {
       const SESSION_ROW_SEL = 'div[role="treeitem"][class*="_sessionRow"]';
       const OPEN_ROW_SEL = 'div[role="treeitem"][class*="_sessionRow"][class*="_menuOpen"]';
       const MENU_WINDOW_MS = 1500;
+      const MENU_ORDER = ["rename", "copy", "skip", "fork", "delete", "archive"];
+      const SKIP_FLAG = "data-meow-skip-item";
       const LABEL = "复制会话 ID";
       const COPIED = "已复制";
       const FAILED = "复制失败";
@@ -872,6 +877,88 @@ html body span.YDXeBa_folderActive svg * {
           }
         }catch(e){}
         return null;
+      }
+
+      // 菜单项角色识别：自家项/插件项看标记与类名，官方项看 fiber.key。
+      // fiber.key 不可用时，官方三项按当前 DOM 顺序兜底（原生序 = 重命名/分叉/归档）。
+      function fiberKeyOf(el){
+        try{
+          let cur = fiberOf(el);
+          for(let d = 0; d < 8 && cur; d++){
+            if(typeof cur.key === "string" && cur.key) return cur.key;
+            cur = cur.return;
+          }
+        }catch(e){}
+        return null;
+      }
+      function classifyItem(btn){
+        if(btn.getAttribute(ITEM_FLAG)) return "copy";
+        if(btn.hasAttribute(SKIP_FLAG)) return "skip";
+        if((btn.className || "").indexOf("_danger") !== -1) return "delete";
+        const key = fiberKeyOf(btn);
+        if(key === "rename" || key === "fork" || key === "archive") return key;
+        return null;
+      }
+
+      // 菜单项外层还有 React 键控的 div._itemWrap_ 容器，重排必须在容器层级做；
+      // 裸挂在 menu 下的注入按钮（自家/其他插件）先包上同款容器移入 viewport。
+      function ensureWrap(btn, viewport, wrapClassName){
+        const p = btn.parentElement;
+        if(p && p !== viewport && p.tagName === "DIV" && (p.className || "").indexOf("_itemWrap") !== -1) return p;
+        const wrap = document.createElement("div");
+        if(wrapClassName) wrap.className = wrapClassName;
+        wrap.appendChild(btn);
+        viewport.appendChild(wrap);
+        return wrap;
+      }
+
+      // 重排 = 按目标顺序 appendChild 移动 wrap 容器（不改文字）。
+      // 关键：先比较后写——顺序已正确时零 DOM 写入。appendChild 即使节点已在
+      // 目标位置也会产生 childList 变异记录，无条件移动会让观察回调再次 scan
+      // → 再移动 → 微任务自激死循环，页面直接卡死。
+      function reorderMenu(menu){
+        const btns = menu.querySelectorAll('button[role="menuitem"]');
+        if(btns.length === 0) return;
+        const viewport = menu.querySelector('[class*="_viewport"]') || menu;
+        const nativeWrap = menu.querySelector('[class*="_itemWrap"]');
+        const wrapClassName = nativeWrap ? nativeWrap.className : "";
+        const byRole = {};
+        const officialQueue = ["rename", "fork", "archive"];
+        const unknown = [];
+        for(let i = 0; i < btns.length; i++){
+          let role = classifyItem(btns[i]);
+          if(role === null && officialQueue.length) role = officialQueue.shift();
+          if(role) byRole[role] = btns[i];
+          else unknown.push(btns[i]);
+        }
+        const roleKeys = Object.keys(byRole);
+        for(let i = 0; i < roleKeys.length; i++){
+          byRole[roleKeys[i]] = ensureWrap(byRole[roleKeys[i]], viewport, wrapClassName);
+        }
+        for(let i = 0; i < unknown.length; i++){
+          unknown[i] = ensureWrap(unknown[i], viewport, wrapClassName);
+        }
+        const children = Array.prototype.slice.call(viewport.children);
+        const knownSet = new Set();
+        for(let i = 0; i < roleKeys.length; i++){
+          if(byRole[roleKeys[i]].parentElement === viewport) knownSet.add(byRole[roleKeys[i]]);
+        }
+        const desired = [];
+        for(let i = 0; i < MENU_ORDER.length; i++){
+          const w = byRole[MENU_ORDER[i]];
+          if(w && knownSet.has(w)) desired.push(w);
+        }
+        for(let i = 0; i < children.length; i++){
+          if(!knownSet.has(children[i])) desired.push(children[i]);
+        }
+        let same = children.length === desired.length;
+        if(same){
+          for(let i = 0; i < children.length; i++){
+            if(children[i] !== desired[i]){ same = false; break; }
+          }
+        }
+        if(same) return;
+        for(let i = 0; i < desired.length; i++) viewport.appendChild(desired[i]);
       }
 
       function findMenuClose(menuEl){
@@ -927,9 +1014,17 @@ html body span.YDXeBa_folderActive svg * {
       function injectInto(menu, sid){
         const old = menu.querySelector("[" + ITEM_FLAG + "]");
         if(old){
-          if(old.getAttribute(SID_ATTR) === sid) return;
-          old.remove();
+          if(old.getAttribute(SID_ATTR) !== sid){
+            old.remove();
+            addItem(menu, sid);
+          }
+        } else {
+          addItem(menu, sid);
         }
+        reorderMenu(menu);
+      }
+
+      function addItem(menu, sid){
         const template = menu.querySelector('[role="menuitem"]');
         if(template === null) return;
         const item = template.cloneNode(true);
