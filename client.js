@@ -826,6 +826,188 @@ html body span.YDXeBa_folderActive svg * {
           };
         })();
 
+    // ==== sessionCopyId：会话「…」菜单追加「复制会话 ID」 ====
+    // 与 meow-memory 的「跳过梦境整理」注入同构（同环境已生产验证）：
+    // - 官方 Menu(portal:true) 打开时在 body 下挂 div[role=menu]，菜单项是 button[role=menuitem]；
+    // - 会话 id：行 fiber.key（向上 ≤8 层第一个非空 string key）＝node.id＝host 会话 id；
+    //   兜底从菜单节点走链找 props.node.id；打开的行有 _sessionRow+_menuOpen class；
+    // - 注入：克隆官方 menuitem（继承全部样式）→ 改文案/复制图标 → 点击复制 id，
+    //   反馈「已复制」后回调 Menu 的 props.onClose 收起菜单。
+    const sessionCopyId = (function(){
+      const ITEM_FLAG = "data-mystyle-copy-id-item";
+      const SID_ATTR = "data-mystyle-copy-id-sid";
+      const ROW_ACTIONS_SEL = '[class*="_rowActions"]';
+      const SESSION_ROW_SEL = 'div[role="treeitem"][class*="_sessionRow"]';
+      const OPEN_ROW_SEL = 'div[role="treeitem"][class*="_sessionRow"][class*="_menuOpen"]';
+      const MENU_WINDOW_MS = 1500;
+      const LABEL = "复制会话 ID";
+      const COPIED = "已复制";
+      const FAILED = "复制失败";
+      const COPY_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+      let pendingSid = null, pendingAt = 0, scanTimer = 0;
+
+      function fiberOf(el){
+        const keys = Object.keys(el);
+        for(let i = 0; i < keys.length; i++){
+          if(keys[i].indexOf("__reactFiber$") === 0) return el[keys[i]];
+        }
+        return null;
+      }
+
+      // 会话行 → id：fiber.key（meow-memory 同款）；兜底走链找 props.node.id。
+      function readSessionIdFromRow(row){
+        try{
+          let cur = fiberOf(row);
+          for(let d = 0; d < 8 && cur; d++){
+            if(typeof cur.key === "string" && cur.key) return cur.key;
+            cur = cur.return;
+          }
+        }catch(e){}
+        try{
+          let cur = fiberOf(row);
+          for(let d = 0; d < 200 && cur; d++){
+            const p = cur.memoizedProps;
+            if(p && typeof p === "object" && p.node && typeof p.node.id === "string" && p.node.id) return p.node.id;
+            cur = cur.return;
+          }
+        }catch(e){}
+        return null;
+      }
+
+      function findMenuClose(menuEl){
+        try{
+          let cur = fiberOf(menuEl);
+          for(let d = 0; d < 60 && cur; d++){
+            const p = cur.memoizedProps;
+            if(p && typeof p === "object" && typeof p.onClose === "function") return p.onClose;
+            cur = cur.return;
+          }
+        }catch(e){}
+        return null;
+      }
+
+      // 局域网 http 访问（手机）无 navigator.clipboard，退回 execCommand。
+      function legacyCopy(text){
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+        document.body.removeChild(ta);
+        return ok;
+      }
+      function copyText(text){
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          return navigator.clipboard.writeText(text).catch(function(){
+            if(!legacyCopy(text)) throw new Error("copy failed");
+          });
+        }
+        return Promise.resolve().then(function(){
+          if(!legacyCopy(text)) throw new Error("copy failed");
+        });
+      }
+
+      // 改最深的有字叶子（meow-memory retitleLeaf 同款，不依赖具体 span 结构）。
+      function retitleLeaf(root, text){
+        let leaf = null;
+        (function walk(el){
+          let hasElementChild = false;
+          for(let i = 0; i < el.children.length; i++){ hasElementChild = true; walk(el.children[i]); }
+          if(!hasElementChild && (el.textContent || "").trim().length > 0) leaf = el;
+        })(root);
+        if(leaf === null) return false;
+        leaf.textContent = text;
+        return true;
+      }
+
+      function injectInto(menu, sid){
+        const old = menu.querySelector("[" + ITEM_FLAG + "]");
+        if(old){
+          if(old.getAttribute(SID_ATTR) === sid) return;
+          old.remove();
+        }
+        const template = menu.querySelector('[role="menuitem"]');
+        if(template === null) return;
+        const item = template.cloneNode(true);
+        item.removeAttribute("id");
+        const withIds = item.querySelectorAll("[id]");
+        for(let i = 0; i < withIds.length; i++) withIds[i].removeAttribute("id");
+        if(!retitleLeaf(item, LABEL)) return;
+        item.setAttribute(ITEM_FLAG, "true");
+        item.setAttribute(SID_ATTR, sid);
+        const icon = item.querySelector("svg");
+        if(icon !== null) icon.outerHTML = COPY_ICON;
+        const close = findMenuClose(menu);
+        item.addEventListener("click", function(e){
+          e.stopPropagation();
+          e.preventDefault();
+          copyText(sid).then(function(){
+            retitleLeaf(item, COPIED);
+            setTimeout(function(){ if(close){ try { close(); } catch (err) {} } }, 600);
+          }).catch(function(){
+            retitleLeaf(item, FAILED);
+          });
+        }, true);
+        item.addEventListener("pointerdown", function(e){ e.stopPropagation(); });
+        menu.appendChild(item);
+      }
+
+      function resolveSid(){
+        const openRow = document.querySelector(OPEN_ROW_SEL);
+        if(openRow){
+          const sid = readSessionIdFromRow(openRow);
+          if(sid) return sid;
+        }
+        if(pendingSid !== null && Date.now() - pendingAt <= MENU_WINDOW_MS) return pendingSid;
+        return null;
+      }
+
+      function scan(){
+        const sid = resolveSid();
+        if(sid === null) return;
+        const menus = document.querySelectorAll('[role="menu"]');
+        for(let i = 0; i < menus.length; i++){
+          try { injectInto(menus[i], sid); } catch (e) {}
+        }
+      }
+
+      const onPointerDown = function(e){
+        const el = e.target;
+        if(!el || typeof el.closest !== "function") return;
+        if(el.closest(ROW_ACTIONS_SEL) === null) return;
+        const row = el.closest(SESSION_ROW_SEL);
+        if(row === null) return;
+        const sid = readSessionIdFromRow(row);
+        if(sid){ pendingSid = sid; pendingAt = Date.now(); }
+      };
+
+      function apply(ctx){
+        const observer = new MutationObserver(function(){
+          scan();
+          window.clearTimeout(scanTimer);
+          scanTimer = window.setTimeout(scan, 120);
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        document.addEventListener("pointerdown", onPointerDown, true);
+        scan();
+        ctx.effect(function(){
+          return function(){
+            observer.disconnect();
+            document.removeEventListener("pointerdown", onPointerDown, true);
+            window.clearTimeout(scanTimer);
+            const olds = document.querySelectorAll("[" + ITEM_FLAG + "]");
+            for(let i = 0; i < olds.length; i++) olds[i].remove();
+          };
+        }, "dsh-my-style: session copy-id menu");
+      }
+
+      return { apply: apply };
+    })();
+
     function apply(ctx) {
       const styleDisposer = ctx.effect(() => { installStyle(); installCaret(); installWorkspaceSearchGuard(); }, "dsh-my-style: install browser assets");
       const theme = ctx.theme;
@@ -854,6 +1036,7 @@ html body span.YDXeBa_folderActive svg * {
         styleDisposer?.();
       }, "dsh-my-style: cleanup");
       statsFlank.apply(ctx);
+      sessionCopyId.apply(ctx);
     }
     module.exports = { apply, inject: ["theme", "slots"] };
     return module.exports;
