@@ -1,5 +1,7 @@
 # dsh-my-style
 
+**语言 / Language**: 简体中文 | [English](README.en.md)
+
 DeepSeek Harness (DSH) web 客户端插件：**炭灰 + 樱粉**主题配色，输入框两侧的**会话统计侧栏**，以及一组会话操作增强（复制会话 ID、菜单重排、搜索框防串扰）。
 
 ## 功能
